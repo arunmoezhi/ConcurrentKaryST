@@ -1,8 +1,14 @@
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.StringTokenizer;
 public class TestConcurrentKaryST
 {
 	static Node grandParentHead;
 	static Node parentHead;
+	static long nodeCount=0;
 
 	static long lookup(Node node, long target)
 	{
@@ -82,7 +88,7 @@ public class TestConcurrentKaryST
 			//System.out.println("This dummy node can be replaced with a new leaf node containing the key");	
 			long[] keys = new long[Node.NUM_OF_KEYS_IN_A_NODE];
 			keys[0] = insertKey;
-			pnode.childrenArray[nthChild] = new Node(keys,"leafNode");
+			pnode.childrenArray[nthChild] = new Node(keys,"leafNode"); //this has to be atomic
 			return;
 		}
 		else //leaf node is reached
@@ -94,20 +100,19 @@ public class TestConcurrentKaryST
 				{
 					if(insertKey == replaceNode.keys[i])
 					{
-						//System.out.println("key is already found");
+						//key is already found
 						return;
 					}
 				}
 				else // leaf has a empty slot
 				{
 					replaceNode.keys[i] = insertKey;
-					pnode.childrenArray[nthChild] = replaceNode;
+					pnode.childrenArray[nthChild] = replaceNode; //this has to be atomic
 					return;
 				}
 
 			}
 			//here the leaf is full
-			//System.out.println("leaf is full");
 			//find the minimum key in the leaf and if insert key is greater than min key then do a swap
 			long[] tempInternalkeys = node.keys;
 			long extrakey;
@@ -141,7 +146,7 @@ public class TestConcurrentKaryST
 				tempLeafKeys[0] = tempInternalkeys[i-1];
 				tempInternalNode.childrenArray[i] = new Node(tempLeafKeys,"leafNode");
 			}
-			pnode.childrenArray[nthChild] = tempInternalNode;
+			pnode.childrenArray[nthChild] = tempInternalNode; //this has to be atomic
 			return;
 		}
 	}
@@ -191,7 +196,7 @@ public class TestConcurrentKaryST
 		}
 		if(node.keys == null) //dummy node is reached
 		{
-			//System.out.println("In dummy node - Delete cannot delete a non-existent key");	
+			//In dummy node - Delete cannot delete a non-existent key	
 			return;
 		}
 		else //leaf node is reached
@@ -205,11 +210,11 @@ public class TestConcurrentKaryST
 				}
 				if(deleteKey == replaceNode.keys[i])
 				{
-					//System.out.println("key is found for delete");
+					//key is found for delete
 					if(atleast2Keys > 1) //simple delete
 					{
 						replaceNode.keys[i] = 0;
-						pnode.childrenArray[nthChild] = replaceNode;
+						pnode.childrenArray[nthChild] = replaceNode; //this has to be atomic
 						return;
 					}
 					else
@@ -219,7 +224,7 @@ public class TestConcurrentKaryST
 							if(replaceNode.keys[j] > 0) //simple delete
 							{
 								replaceNode.keys[i] = 0;
-								pnode.childrenArray[nthChild] = replaceNode;
+								pnode.childrenArray[nthChild] = replaceNode; //this has to be atomic
 								return;
 							}
 						}
@@ -238,7 +243,7 @@ public class TestConcurrentKaryST
 						if(nonDummyChildCount > 2)
 						{
 							//replace this leaf node with a dummy node as it has only 1 key 
-							pnode.childrenArray[nthChild] = new Node();
+							pnode.childrenArray[nthChild] = new Node(); //this has to be atomic
 							return;
 						}
 						else
@@ -248,12 +253,12 @@ public class TestConcurrentKaryST
 							{
 								if(pnode.childrenArray[nonDummyChildIndex[0]] == node)
 								{
-									gpnode.childrenArray[nthParent] = pnode.childrenArray[nonDummyChildIndex[1]];
+									gpnode.childrenArray[nthParent] = pnode.childrenArray[nonDummyChildIndex[1]]; //this has to be atomic
 									return;
 								}
 								else
 								{
-									gpnode.childrenArray[nthParent] = pnode.childrenArray[nonDummyChildIndex[0]];
+									gpnode.childrenArray[nthParent] = pnode.childrenArray[nonDummyChildIndex[0]]; //this has to be atomic
 									return;
 								}
 							}
@@ -322,26 +327,69 @@ public class TestConcurrentKaryST
 		}
 	}
 
-	//	static void getUserInput()
-	//	{
-	//		FileInputStream fs;
-	//		try
-	//		{
-	//			fs = new FileInputStream("input.txt");
-	//			DataInputStream ds = new DataInputStream(fs);
-	//			BufferedReader reader = new BufferedReader(new InputStreamReader(ds));
-	//			while(!(inputString = reader.readLine()).equalsIgnoreCase("quit"))
-	//			{
-	//
-	//			}
-	//			ds.close();
-	//		} 
-	//		catch(Exception e)
-	//		{
-	//			e.printStackTrace();
-	//		}
-	//
-	//	}
+	static void nodeCount(Node node)
+	{
+		if(node == null)
+		{
+			return;
+		}
+		if(node.childrenArray == null && node.keys != null)
+		{
+			for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
+			{
+				if(node.keys[i] > 0)
+				{
+					nodeCount++;
+				}
+			}
+		}
+
+		if(node.childrenArray != null)
+		{
+			for(int i=0;i<Node.NUM_OF_CHILDREN_FOR_A_NODE;i++)
+			{
+				nodeCount(node.childrenArray[i]);
+			}
+		}
+	}
+	
+	static void getUserInput()
+	{
+		String in="";
+		String operation="";
+		StringTokenizer st;
+		FileInputStream fs;
+		try
+		{
+			fs = new FileInputStream("input.txt");
+			DataInputStream ds = new DataInputStream(fs);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(ds));
+			while(!(in = reader.readLine()).equalsIgnoreCase("quit"))
+			{
+				st = new StringTokenizer(in);
+				operation = st.nextToken();
+				if(operation.equalsIgnoreCase("Find"))
+				{
+					lookup(grandParentHead,Long.parseLong(st.nextToken()));
+				}
+				else if(operation.equalsIgnoreCase("Insert"))
+				{
+					insert(grandParentHead,Long.parseLong(st.nextToken()));
+				}
+				else if(operation.equalsIgnoreCase("Delete"))
+				{
+					delete(parentHead.childrenArray[0],parentHead,grandParentHead,Long.parseLong(st.nextToken()));
+				}
+				
+			}
+			ds.close();
+		} 
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+
+	}
 
 	static void createHeadNodes()
 	{
@@ -349,7 +397,7 @@ public class TestConcurrentKaryST
 
 		for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
 		{
-			keys[i] = 1L<<62;
+			keys[i] = Long.MAX_VALUE;
 		}
 
 		grandParentHead = new Node(keys,"internalNode");
@@ -360,32 +408,13 @@ public class TestConcurrentKaryST
 	public static void main(String[] args)
 	{
 		createHeadNodes();
+		
+		getUserInput();
 
-		for(int i=1;i<=11;i++)
-		{
-			insert(grandParentHead,i);
-		}	
+		printOnlyKeysPreorder(grandParentHead);
+		nodeCount(grandParentHead);
+		System.out.println(nodeCount);
 
-		for(int i=1;i<=11;i++)
-		{
-			lookup(grandParentHead,i);
-		}	
-		for(int i=1;i<=11;i++)
-		{
-			delete(parentHead.childrenArray[0],parentHead,grandParentHead,i);
-		}	
-		//		printPreorder(grandParentHead);
-		//		printOnlyKeysPreorder(grandParentHead);
-		for(int i=1;i<=11;i++)
-		{
-			insert(grandParentHead,i);
-		}	
-		printOnlyKeysPreorder(grandParentHead);
-		for(int i=11;i>=11;i--)
-		{
-			delete(parentHead.childrenArray[0],parentHead,grandParentHead,i);
-		}	
-		printOnlyKeysPreorder(grandParentHead);
 	}
 }
 
