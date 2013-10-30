@@ -5,13 +5,15 @@ public class Node
 	public static final int NUM_OF_KEYS_IN_A_NODE= K-1;
 	public static final int NUM_OF_CHILDREN_FOR_A_NODE= K;
 	long keys[];
-	Node[] childrenArray;
+	volatile Node c0,c1,c2,c3;
+	volatile UpdateStep pending = null;
 	public Node()
 	{
 		
 	}
 	public Node(long[] keys, String nodeType)
 	{
+		pending = new Clean();
 		this.keys = new long[NUM_OF_KEYS_IN_A_NODE];
 		for(int i=0;i<NUM_OF_KEYS_IN_A_NODE;i++)
 		{
@@ -19,11 +21,11 @@ public class Node
 		}
 		if(nodeType.equalsIgnoreCase("internalNode"))
 		{
-			childrenArray = new Node[NUM_OF_CHILDREN_FOR_A_NODE];
-			for(int i=0;i<NUM_OF_CHILDREN_FOR_A_NODE;i++)
-			{
-				childrenArray[i] = (Node) new DummyNode();
-			}
+			c0 = (Node) new DummyNode();
+			c1 = (Node) new DummyNode();
+			c2 = (Node) new DummyNode();
+			c3 = (Node) new DummyNode();
+			
 		}
 	}
 }
