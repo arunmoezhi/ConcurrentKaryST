@@ -4,12 +4,12 @@ public class Node
 	public static final int K = 4;
 	public static final int NUM_OF_KEYS_IN_A_NODE= K-1;
 	public static final int NUM_OF_CHILDREN_FOR_A_NODE= K;
-	long keys[];
+	final long keys[];
 	volatile Node c0,c1,c2,c3;
 	volatile UpdateStep pending = null;
 	public Node()
 	{
-		
+		keys=null;
 	}
 	public Node(long[] keys, String nodeType)
 	{
