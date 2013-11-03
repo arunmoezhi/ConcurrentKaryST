@@ -8,7 +8,7 @@ import java.util.StringTokenizer;
 public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 {
 	int threadId;
-	public static final int NUM_OF_THREADS=5;
+	public static final int NUM_OF_THREADS=1;
 	
 	public TestConcurrentKaryST(int threadId)
 	{
@@ -40,7 +40,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				}
 				else if(operation.equalsIgnoreCase("Delete"))
 				{
-					//delete(parentHead.c0,parentHead,grandParentHead,Long.parseLong(st.nextToken()));
+					obj.delete(parentHead.c0,parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
 				}
 
 			}
@@ -80,7 +80,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				arrayOfThreads[i].join();
 				System.out.println("Thread " + i + " is done");
 			}
-			//obj.printPreorder(ConcurrentKaryST.grandParentHead);
+			obj.printPreorder(ConcurrentKaryST.grandParentHead);
 			//obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
 			obj.nodeCount(ConcurrentKaryST.grandParentHead);
 			System.out.println(ConcurrentKaryST.nodeCount);

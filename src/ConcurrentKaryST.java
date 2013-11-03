@@ -267,27 +267,27 @@ public class ConcurrentKaryST
 		case 0: 
 			if(c0Update.compareAndSet(pending.p, pending.l, pending.newChild)) 
 				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c0");  
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c0"); 
-			break;
+				break;
 		case 1: 
 			if(c1Update.compareAndSet(pending.p, pending.l, pending.newChild))
 				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c1");
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c1");
-			break;
+				break;
 		case 2: 
 			if(c2Update.compareAndSet(pending.p, pending.l, pending.newChild))
 				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c2"); 
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c2"); 
-			break;
+				break;
 		case 3:
 			if(c3Update.compareAndSet(pending.p, pending.l, pending.newChild)) 
 				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c3"); 
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c3");
-			break;
+				break;
 
 		default: assert(false); break;
 		}
@@ -303,27 +303,27 @@ public class ConcurrentKaryST
 		case 0:
 			if(c0Update.compareAndSet(pending.p, pending.l, pending.newChild))
 				//System.out.println(threadId + "inserted " + pending.insertKey + " at c0"); 
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c0");
-			break;
+				break;
 		case 1: 
 			if(c1Update.compareAndSet(pending.p, pending.l, pending.newChild))
 				//System.out.println(threadId +  "inserted " + pending.insertKey + " at c1"); 
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c1"); 
-			break;
+				break;
 		case 2: 
 			if(c2Update.compareAndSet(pending.p, pending.l, pending.newChild))
 				//System.out.println(threadId +  "inserted " + pending.insertKey + " at c2"); 
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c2");
-			break;
+				break;
 		case 3: 
 			if(c3Update.compareAndSet(pending.p, pending.l, pending.newChild))
 				//System.out.println(threadId+  "inserted " + pending.insertKey + " at c3"); 
-			//else 
+				//else 
 				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c3");
-			break;
+				break;
 
 		default: assert(false); break;
 		}
@@ -331,166 +331,218 @@ public class ConcurrentKaryST
 		infoUpdate.compareAndSet(pending.p, pending, new Clean());
 	}
 
-	/*
-	public final void delete(Node node, Node pnode, Node gpnode, long deleteKey)
+	public final void delete(Node root, Node proot, Node gproot, long deleteKey, int threadId)
 	{
 		boolean ltLastKey;
-		int nthChild=0,nthParent=0;
-		int atleast2Keys=0;
-		while(node.c0 !=null) //loop until a leaf or dummy node is reached
+		boolean keyFound;
+		int keyIndex;
+		int nthChild;
+		int nthParent;
+		int atleast2Keys;
+		Node node;
+		Node pnode;
+		Node gpnode;
+		Node currentLeaf;
+		Node currentParent;
+		UpdateStep pPending;
+		Node replaceNode;
+		while(true) //loop until a leaf or dummy node is reached
 		{
 			ltLastKey=false;
+			keyFound=false;
+			keyIndex=-1;
+			nthChild=-1;
+			nthParent=-1;
+			atleast2Keys=0;
+			node=root;
+			pnode=proot;
+			gpnode=gproot;
+			currentLeaf=null;
+			currentParent=null;
+			replaceNode=null;
 
-			for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
+			while(node.c0 !=null) //loop until a leaf or dummy node is reached
 			{
-				if(deleteKey < node.keys[i])
+				ltLastKey=false;
+				for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
 				{
-					ltLastKey = true;
+					if(deleteKey < node.keys[i])
+					{
+						ltLastKey = true;
+						gpnode = pnode;
+						pnode = node;
+						switch(i)
+						{
+						case 0:node = node.c0;break;
+						case 1:node = node.c1;break;
+						case 2:node = node.c2;break;	
+						}
+						break;
+					}
+				}
+				if(!ltLastKey)
+				{
 					gpnode = pnode;
 					pnode = node;
-					switch(i)
+					node = node.c3;
+				}
+			}
+			pPending=pnode.pending;
+			//get the child id w.r.t the parent
+			if(pnode.c0 == node)
+			{
+				currentLeaf = pnode.c0;
+				nthChild = 0;
+			}
+			else if(pnode.c1 == node)
+			{
+				currentLeaf = pnode.c1;
+				nthChild = 1;
+			}
+			else if(pnode.c2 == node)
+			{
+				currentLeaf = pnode.c2;
+				nthChild = 2;
+			}
+			else if(pnode.c3 == node)
+			{
+				currentLeaf = pnode.c3;
+				nthChild = 3;
+			}
+
+			if(node != currentLeaf )
+			{
+				continue;
+			}
+
+			//get the parent id w.r.t the grandparent
+			if(gpnode.c0 == pnode)
+			{
+				currentParent = gpnode.c0;
+				nthParent = 0;
+			}
+			else if(gpnode.c1 == pnode)
+			{
+				currentParent = gpnode.c1;
+				nthParent = 1;
+			}
+			else if(gpnode.c2 == pnode)
+			{
+				currentParent = gpnode.c2;
+				nthParent = 2;
+			}
+			else if(gpnode.c3 == pnode)
+			{
+				currentParent = gpnode.c3;
+				nthParent = 3;
+			}
+
+			if(pnode != currentParent )
+			{
+				continue;
+			}
+
+			if(pPending.getClass() != Clean.class)
+			{
+				//System.out.println(threadId + "trying to insert " + insertKey + " but info record is not clean and hence calling help");
+				help(pPending, threadId);
+			}
+			else if(node.keys != null) //leaf node is reached
+			{
+
+				replaceNode = new Node(node.keys,"leafNode");
+				for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
+				{
+					if(replaceNode.keys[i] > 0)
 					{
-					case 0:
-						node = node.c0;
-						break;
-					case 1:
-						node = node.c1;
-						break;
-					case 2:
-						node = node.c2;
-						break;	
+						atleast2Keys++;
 					}
-					break;
-				}
-			}
-			if(!ltLastKey)
-			{
-				gpnode = pnode;
-				pnode = node;
-				node = node.c3;
-			}
-		}
-		//get the child id w.r.t the parent
-		if(pnode.c0 == node)
-		{
-			nthChild = 0;
-		}
-		else if(pnode.c1 == node)
-		{
-			nthChild = 1;
-		}
-		else if(pnode.c2 == node)
-		{
-			nthChild = 2;
-		}
-		else if(pnode.c3 == node)
-		{
-			nthChild = 3;
-		}
-
-		//get the parent id w.r.t the grandparent
-				if(gpnode.c0 == pnode)
-				{
-					nthParent = 0;
-				}
-				else if(gpnode.c1 == pnode)
-				{
-					nthParent = 1;
-				}
-				else if(gpnode.c2 == pnode)
-				{
-					nthParent = 2;
-				}
-				else if(gpnode.c3 == pnode)
-				{
-					nthParent = 3;
+					if(deleteKey == replaceNode.keys[i])
+					{
+						keyFound=true;
+						keyIndex=i;
+					}
 				}
 
-		if(node.keys == null) //dummy node is reached
-		{
-			//In dummy node - Delete cannot delete a non-existent key	
-			return;
-		}
-		else //leaf node is reached
-		{
-			Node replaceNode = new Node(node.keys,"leafNode");
-			for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
-			{
-				if(replaceNode.keys[i] > 0)
+				if(keyFound)
 				{
-					atleast2Keys++;
-				}
-				if(deleteKey == replaceNode.keys[i])
-				{
-					//key is found for delete
 					if(atleast2Keys > 1) //simple delete
 					{
-						replaceNode.keys[i] = 0;
-						simpleInsert(node,pnode,nthChild,replaceNode);
-						//pnode.childrenArray[nthChild] = replaceNode; //this has to be atomic
-						return;
+						replaceNode.keys[keyIndex] = 0;
+						ReplaceFlag op = new ReplaceFlag(node, pnode, nthChild, replaceNode, deleteKey);
+						helpReplace(op,threadId);
 					}
-					else
+					else //only 1 key is present in leaf. Have to check if parent has at least 3 non-dummy children. 
 					{
-						for(int j=i+1;j<Node.NUM_OF_KEYS_IN_A_NODE;j++)
-						{
-							if(replaceNode.keys[j] > 0) //simple delete
-							{
-								replaceNode.keys[i] = 0;
-								simpleInsert(node,pnode,nthChild,replaceNode);
-								//pnode.childrenArray[nthChild] = replaceNode; //this has to be atomic
-								return;
-							}
-						}
-						//might be pruning delete
-						//int index=0;
 						int nonDummyChildCount=0;
-						int[] nonDummyChildIndex = new int[3];
-						for(int k=0;k<Node.NUM_OF_CHILDREN_FOR_A_NODE && nonDummyChildCount<3;k++)
+						Node sibling=null;
+						if(pnode.c0.keys != null)
 						{
-							if(pnode.childrenArray[k].keys != null)
+							nonDummyChildCount++;
+							if(pnode.c0 != node)
 							{
-								nonDummyChildIndex[nonDummyChildCount++] = k;
+								sibling = pnode.c0;
 							}
-
 						}
-						if(nonDummyChildCount > 2)
+						if(pnode.c1.keys != null)
 						{
-							//replace this leaf node with a dummy node as it has only 1 key 
-							pnode.childrenArray[nthChild] = new Node(); //this has to be atomic
-							return;
-						}
-						else
-						{
-							//pruning delete
-							if(nonDummyChildCount ==2)
+							nonDummyChildCount++;
+							if(pnode.c1 != node)
 							{
-								if(pnode.childrenArray[nonDummyChildIndex[0]] == node)
-								{
-									gpnode.childrenArray[nthParent] = pnode.childrenArray[nonDummyChildIndex[1]]; //this has to be atomic
-									return;
-								}
-								else
-								{
-									gpnode.childrenArray[nthParent] = pnode.childrenArray[nonDummyChildIndex[0]]; //this has to be atomic
-									return;
-								}
+								sibling = pnode.c1;
 							}
-							else
+						}
+						if(pnode.c2.keys != null)
+						{
+							nonDummyChildCount++;
+							if(pnode.c2 != node)
 							{
-								//deleting the first and last key in the tree
-								pnode.childrenArray[0] = new Node();
+								sibling = pnode.c2;
+							}
+						}
+						if(pnode.c3.keys != null)
+						{
+							nonDummyChildCount++;
+							if(pnode.c3 != node)
+							{
+								sibling = pnode.c3;
+							}
+						}
+						if(nonDummyChildCount != 2) //simple delete. Replace leaf node with a dummy node
+						{
+							//Note: This can be deleting the first and last key in the tree
+							replaceNode = new Node();
+							ReplaceFlag op = new ReplaceFlag(node, pnode, nthChild, replaceNode, deleteKey);
+							helpReplace(op,threadId);
+						}
+						else//pruning delete. Only this node and another sibling exist. Make the gp point to the sibling.
+						{
+							switch(nthParent)
+							{
+							case 0:gpnode.c0 = sibling;break;
+							case 1:gpnode.c1 = sibling;break;
+							case 2:gpnode.c2 = sibling;break;
+							case 3:gpnode.c3 = sibling;break;
 							}
 						}
 					}
+					return;
+				}
+				else
+				{
+					//key not found
+					return;
 				}
 			}
-			//System.out.println("In leaf node - Delete cannot delete a non-existent key");
+			else
+			{
+				//dummy node is reached
+				return;
+			}
 		}
-		return;
 	}
+	//System.out.println("In leaf node - Delete cannot delete a non-existent key");
 
-	 */
 
 	public final void printPreorder(Node node)
 	{
