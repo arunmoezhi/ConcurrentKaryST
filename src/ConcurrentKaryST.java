@@ -249,13 +249,25 @@ public class ConcurrentKaryST
 
 	public final void help(UpdateStep pending, int threadId)
 	{
+		//System.out.println(threadId + " trying to help " + pending.getClass());
 		if(pending.getClass() != Clean.class)
 		{
-			helpReplace1((ReplaceFlag) pending, threadId);
+			if(pending.getClass() == ReplaceFlag.class)
+			{
+				helpReplace1((ReplaceFlag) pending, threadId);
+			}
+			else if(pending.getClass() == PruneFlag.class)
+			{
+				helpPrune((PruneFlag) pending, threadId);
+			}
+			if(pending.getClass() == Mark.class)
+			{
+				helpMarked(((Mark)pending).pending, threadId);
+			}		
 		}
 		else
 		{
-			//System.out.println("pending became clean again");
+			//System.out.println("In help method - pending became clean again");
 		}
 	}
 
@@ -331,7 +343,60 @@ public class ConcurrentKaryST
 		infoUpdate.compareAndSet(pending.p, pending, new Clean());
 	}
 
-	public final void delete(Node root, Node proot, Node gproot, long deleteKey, int threadId)
+	public final boolean helpPrune(PruneFlag pending, int threadId)
+	{
+		boolean result;
+		result = infoUpdate.compareAndSet(pending.p, pending.ppending, new Mark(pending)); //Mark CAS
+
+		UpdateStep newValue = pending.p.pending;
+		if(result || (newValue.getClass() == Mark.class && ((Mark) newValue).pending == pending)) //marking successful- So go ahead and complete the deletion
+		{
+			helpMarked(pending,threadId); 
+			return true;
+		}
+		else //marking failed
+		{
+			help(newValue,threadId); //help the operation pending on parent
+			infoUpdate.compareAndSet(pending.gp, pending, new Clean()); //unflag the prune flag set in grandparent
+			return false;			
+		}
+	}
+
+	public final void helpMarked(PruneFlag pending, int threadId)
+	{
+		Node other=null;
+		if(pending.p.c0 != pending.l && pending.p.c0.c0 != null)
+		{
+			other = pending.p.c0;	
+		}
+		else if(pending.p.c1 != pending.l && pending.p.c1.c0 != null)
+		{
+			other = pending.p.c1;
+		}
+		else if(pending.p.c2 != pending.l && pending.p.c2.c0 != null)
+		{
+			other = pending.p.c2;
+		}
+		else if(pending.p.c3 != pending.l && pending.p.c3.c0 != null)
+		{
+			other = pending.p.c3;
+		}
+		else
+		{
+			other = pending.p.c0;
+		}
+		switch(pending.gpIndex) // replace the child pointer of gp (if it is still pointing to the parent) to point to other sibling
+		{
+		case 0: c0Update.compareAndSet(pending.gp, pending.p, other);break;
+		case 1: c1Update.compareAndSet(pending.gp, pending.p, other);break;
+		case 2: c2Update.compareAndSet(pending.gp, pending.p, other);break;
+		case 3: c3Update.compareAndSet(pending.gp, pending.p, other);break;
+		}
+
+		infoUpdate.compareAndSet(pending.gp, pending, new Clean()); //unflag the prune flag set in grandparent
+	}
+
+	public final void delete(Node proot, Node gproot, long deleteKey, int threadId)
 	{
 		boolean ltLastKey;
 		boolean keyFound;
@@ -345,7 +410,9 @@ public class ConcurrentKaryST
 		Node currentLeaf;
 		Node currentParent;
 		UpdateStep pPending;
+		UpdateStep gpPending;
 		Node replaceNode;
+		int attempt =0;
 		while(true) //loop until a leaf or dummy node is reached
 		{
 			ltLastKey=false;
@@ -354,13 +421,14 @@ public class ConcurrentKaryST
 			nthChild=-1;
 			nthParent=-1;
 			atleast2Keys=0;
-			node=root;
 			pnode=proot;
 			gpnode=gproot;
+			node=proot.c0;
 			currentLeaf=null;
 			currentParent=null;
 			replaceNode=null;
-
+			attempt++;
+			//System.out.println(threadId + " attempt " + attempt  + " to delete " + deleteKey);
 			while(node.c0 !=null) //loop until a leaf or dummy node is reached
 			{
 				ltLastKey=false;
@@ -388,6 +456,7 @@ public class ConcurrentKaryST
 				}
 			}
 			pPending=pnode.pending;
+			gpPending=gpnode.pending;
 			//get the child id w.r.t the parent
 			if(pnode.c0 == node)
 			{
@@ -410,10 +479,10 @@ public class ConcurrentKaryST
 				nthChild = 3;
 			}
 
-			if(node != currentLeaf )
-			{
-				continue;
-			}
+//			if(node != currentLeaf )
+//			{
+//				continue;
+//			}
 
 			//get the parent id w.r.t the grandparent
 			if(gpnode.c0 == pnode)
@@ -437,14 +506,19 @@ public class ConcurrentKaryST
 				nthParent = 3;
 			}
 
-			if(pnode != currentParent )
-			{
-				continue;
-			}
+//			if(pnode != currentParent)
+//			{
+//				continue;
+//			}
 
-			if(pPending.getClass() != Clean.class)
+			if(gpPending.getClass() != Clean.class)
 			{
-				//System.out.println(threadId + "trying to insert " + insertKey + " but info record is not clean and hence calling help");
+				//System.out.println(threadId + "trying to delete " + deleteKey + " but gpinfo record is not clean and hence calling help");
+				help(gpPending, threadId);
+			}
+			else if (pPending.getClass() != Clean.class)
+			{
+				//System.out.println(threadId + "trying to delete " + deleteKey + " but pinfo record is not clean and hence calling help");
 				help(pPending, threadId);
 			}
 			else if(node.keys != null) //leaf node is reached
@@ -459,6 +533,7 @@ public class ConcurrentKaryST
 					}
 					if(deleteKey == replaceNode.keys[i])
 					{
+						
 						keyFound=true;
 						keyIndex=i;
 					}
@@ -466,77 +541,98 @@ public class ConcurrentKaryST
 
 				if(keyFound)
 				{
+					//System.out.println(threadId + " found key " + deleteKey);
 					if(atleast2Keys > 1) //simple delete
 					{
 						replaceNode.keys[keyIndex] = 0;
 						ReplaceFlag op = new ReplaceFlag(node, pnode, nthChild, replaceNode, deleteKey);
-						helpReplace(op,threadId);
+						if(infoUpdate.compareAndSet(pnode, pPending, op))
+						{
+							//System.out.println(threadId  + "trying to delete " + deleteKey + " and successfully updated info record");
+							helpReplace(op,threadId);
+							return;
+						}
+						else
+						{
+							//System.out.println(threadId  + "trying to delete " + deleteKey + " but failed to update info record. So helping it");
+							help(pnode.pending,threadId);
+						}	
 					}
 					else //only 1 key is present in leaf. Have to check if parent has at least 3 non-dummy children. 
 					{
 						int nonDummyChildCount=0;
-						Node sibling=null;
 						if(pnode.c0.keys != null)
 						{
 							nonDummyChildCount++;
-							if(pnode.c0 != node)
-							{
-								sibling = pnode.c0;
-							}
 						}
 						if(pnode.c1.keys != null)
 						{
 							nonDummyChildCount++;
-							if(pnode.c1 != node)
-							{
-								sibling = pnode.c1;
-							}
 						}
 						if(pnode.c2.keys != null)
 						{
 							nonDummyChildCount++;
-							if(pnode.c2 != node)
-							{
-								sibling = pnode.c2;
-							}
 						}
 						if(pnode.c3.keys != null)
 						{
 							nonDummyChildCount++;
-							if(pnode.c3 != node)
-							{
-								sibling = pnode.c3;
-							}
 						}
 						if(nonDummyChildCount != 2) //simple delete. Replace leaf node with a dummy node
 						{
 							//Note: This can be deleting the first and last key in the tree
 							replaceNode = new Node();
 							ReplaceFlag op = new ReplaceFlag(node, pnode, nthChild, replaceNode, deleteKey);
-							helpReplace(op,threadId);
+							if(infoUpdate.compareAndSet(pnode, pPending, op))
+							{
+								//System.out.println(threadId  + "trying to delete " + deleteKey + " and successfully updated info record");
+								helpReplace(op,threadId);
+								return;
+							}
+							else
+							{
+								//System.out.println(threadId  + "trying to delete " + deleteKey + " but failed to update info record. So helping it");
+								help(pnode.pending,threadId);
+							}	
 						}
 						else//pruning delete. Only this node and another sibling exist. Make the gp point to the sibling.
 						{
+							//System.out.println(threadId  + " trying a pruning delete for " + deleteKey);
+							PruneFlag op=null;
 							switch(nthParent)
 							{
-							case 0:gpnode.c0 = sibling;break;
-							case 1:gpnode.c1 = sibling;break;
-							case 2:gpnode.c2 = sibling;break;
-							case 3:gpnode.c3 = sibling;break;
+							case 0:op = new PruneFlag(node,pnode,gpnode,0,pPending);break;
+							case 1:op = new PruneFlag(node,pnode,gpnode,1,pPending);break;
+							case 2:op = new PruneFlag(node,pnode,gpnode,2,pPending);break;
+							case 3:op = new PruneFlag(node,pnode,gpnode,3,pPending);break;
+							}
+							if(infoUpdate.compareAndSet(gpnode, gpPending, op))
+							{
+								//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and successfully flagged gp" );
+								if(helpPrune(op,threadId))
+								{
+									//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and helpPrune was successful" );
+									return;
+								}
+							}
+							else
+							{
+								//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and failed to flag gp" );
+								help(gpnode.pending,threadId);
 							}
 						}
 					}
-					return;
 				}
 				else
 				{
 					//key not found
+					//System.out.println(threadId + "'s search for " + deleteKey + " ended in a leaf node but key not found");
 					return;
 				}
 			}
 			else
 			{
 				//dummy node is reached
+				//System.out.println(threadId + "'s search for " + deleteKey + " ended in a dummy node");
 				return;
 			}
 		}

@@ -32,7 +32,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				operation = st.nextToken();
 				if(operation.equalsIgnoreCase("Find"))
 				{
-					obj.lookup(grandParentHead,Long.parseLong(st.nextToken()));
+					//obj.lookup(grandParentHead,Long.parseLong(st.nextToken()));
 				}
 				else if(operation.equalsIgnoreCase("Insert"))
 				{
@@ -40,7 +40,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				}
 				else if(operation.equalsIgnoreCase("Delete"))
 				{
-					obj.delete(parentHead.c0,parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
+					obj.delete(parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
 				}
 
 			}
@@ -80,7 +80,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				arrayOfThreads[i].join();
 				System.out.println("Thread " + i + " is done");
 			}
-			obj.printPreorder(ConcurrentKaryST.grandParentHead);
+			//obj.printPreorder(ConcurrentKaryST.grandParentHead);
 			//obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
 			obj.nodeCount(ConcurrentKaryST.grandParentHead);
 			System.out.println(ConcurrentKaryST.nodeCount);

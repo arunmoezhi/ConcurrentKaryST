@@ -1,5 +1,9 @@
 
 public class Mark extends UpdateStep
 {
-	PruneFlag pending;
+	final PruneFlag pending;
+	public Mark(PruneFlag pending)
+	{
+		this.pending = pending;
+	}
 }
