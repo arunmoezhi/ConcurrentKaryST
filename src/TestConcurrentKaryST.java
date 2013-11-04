@@ -91,7 +91,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				System.out.println("Thread " + i + " is done");
 			}
 			//obj.printPreorder(ConcurrentKaryST.grandParentHead);
-			obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
+			//obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
 			obj.nodeCount(ConcurrentKaryST.grandParentHead);
 			System.out.println(ConcurrentKaryST.nodeCount);
 		}

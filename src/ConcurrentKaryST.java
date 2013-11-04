@@ -158,7 +158,7 @@ public class ConcurrentKaryST
 
 			if(pPending.getClass() != Clean.class)
 			{
-				//System.out.println(threadId + "trying to insert " + insertKey + " but info record is not clean and hence calling help");
+				//out.println(threadId + "trying to insert " + insertKey + " but info record is not clean and hence calling help");
 				help(pPending, threadId);
 			}
 			else
@@ -169,7 +169,7 @@ public class ConcurrentKaryST
 					final long[] keys = new long[Node.NUM_OF_KEYS_IN_A_NODE];
 					keys[0] = insertKey;
 					replaceNode = new Node(keys,"leafNode");
-					//System.out.println(threadId  + "Dummy Node - Trying simple insert for " + insertKey);
+					//out.println(threadId  + "Dummy Node - Trying simple insert for " + insertKey);
 				}
 				else //leaf node is reached
 				{
@@ -180,7 +180,7 @@ public class ConcurrentKaryST
 							if(insertKey == node.keys[i])
 							{
 								//key is already found
-								//System.out.println(threadId  + " " + insertKey + " is already found");
+								//out.println(threadId  + " " + insertKey + " is already found");
 								return;
 							}
 						}
@@ -194,7 +194,7 @@ public class ConcurrentKaryST
 					if(!isLeafFull)
 					{
 						replaceNode = new Node(node.keys,"leafNode");
-						//System.out.println(threadId  + "Non Full Leaf Node - Trying simple insert for " + insertKey);
+						//out.println(threadId  + "Non Full Leaf Node - Trying simple insert for " + insertKey);
 						replaceNode.keys[emptySlotId] = insertKey;
 					}
 					else
@@ -208,7 +208,7 @@ public class ConcurrentKaryST
 						tempInternalkeys[1] = node.keys[1];
 						tempInternalkeys[2] = node.keys[2];
 
-						//System.out.println(threadId  + "Trying to insert " + insertKey + " and this node" + node + " is getting replaced" + tempInternalkeys[0] + tempInternalkeys[1] + tempInternalkeys[2]);
+						//out.println(threadId  + "Trying to insert " + insertKey + " and this node" + node + " is getting replaced" + tempInternalkeys[0] + tempInternalkeys[1] + tempInternalkeys[2]);
 						final long extrakey;
 						long min = tempInternalkeys[0];
 						int  minPos = 0;
@@ -230,7 +230,7 @@ public class ConcurrentKaryST
 							extrakey = insertKey;
 						}
 						Arrays.sort(tempInternalkeys);
-						//System.out.println("by" + tempInternalkeys + " " + tempInternalkeys[0] + tempInternalkeys[1] + tempInternalkeys[2]);
+						//out.println("by" + tempInternalkeys + " " + tempInternalkeys[0] + tempInternalkeys[1] + tempInternalkeys[2]);
 						replaceNode = new Node(tempInternalkeys,"internalNode");
 						final long[] tempLeafKeys = new long[Node.NUM_OF_KEYS_IN_A_NODE];
 						tempLeafKeys[1]=0;
@@ -243,7 +243,7 @@ public class ConcurrentKaryST
 						replaceNode.c2 = new Node(tempLeafKeys,"leafNode");
 						tempLeafKeys[0] = tempInternalkeys[2];
 						replaceNode.c3 = new Node(tempLeafKeys,"leafNode");
-						//System.out.println(threadId + "Full leaf node - Trying sprouting insert for " + insertKey);
+						//out.println(threadId + "Full leaf node - Trying sprouting insert for " + insertKey);
 					}
 				}
 
@@ -251,13 +251,13 @@ public class ConcurrentKaryST
 
 				if(infoUpdate.compareAndSet(pnode, pPending, op))
 				{
-					//System.out.println(threadId  + "trying to insert " + insertKey + " and successfully updated info record");
+					//out.println(threadId  + "trying to insert " + insertKey + " and successfully updated info record");
 					helpReplace(op,threadId);
 					return;
 				}
 				else
 				{
-					//System.out.println(threadId  + "trying to insert " + insertKey + " but failed to update info record. So helping it");
+					//out.println(threadId  + "trying to insert " + insertKey + " but failed to update info record. So helping it");
 					help(pnode.pending,threadId);
 				}	
 			}
@@ -266,7 +266,7 @@ public class ConcurrentKaryST
 
 	public final void help(UpdateStep pending, int threadId)
 	{
-		//System.out.println(threadId + " trying to help " + pending.getClass());
+		//out.println(threadId + " trying to help " + pending.getClass());
 		if(pending.getClass() != Clean.class)
 		{
 			if(pending.getClass() == ReplaceFlag.class)
@@ -284,7 +284,7 @@ public class ConcurrentKaryST
 		}
 		else
 		{
-			//System.out.println("In help method - pending became clean again");
+			//out.println("In help method - pending became clean again");
 		}
 	}
 
@@ -295,27 +295,27 @@ public class ConcurrentKaryST
 		{                                                  
 		case 0: 
 			if(c0Update.compareAndSet(pending.p, pending.l, pending.newChild)) 
-				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c0");  
+				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c0");  
 				//else 
-				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c0"); 
+				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c0"); 
 				break;
 		case 1: 
 			if(c1Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c1");
+				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c1");
 				//else 
-				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c1");
+				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c1");
 				break;
 		case 2: 
 			if(c2Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c2"); 
+				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c2"); 
 				//else 
-				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c2"); 
+				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c2"); 
 				break;
 		case 3:
 			if(c3Update.compareAndSet(pending.p, pending.l, pending.newChild)) 
-				//System.out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c3"); 
+				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c3"); 
 				//else 
-				//System.out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c3");
+				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c3");
 				break;
 
 		default: assert(false); break;
@@ -331,27 +331,27 @@ public class ConcurrentKaryST
 		{                                                  
 		case 0:
 			if(c0Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//System.out.println(threadId + "inserted " + pending.insertKey + " at c0"); 
+				//out.println(threadId + "inserted " + pending.insertKey + " at c0"); 
 				//else 
-				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c0");
+				//out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c0");
 				break;
 		case 1: 
 			if(c1Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//System.out.println(threadId +  "inserted " + pending.insertKey + " at c1"); 
+				//out.println(threadId +  "inserted " + pending.insertKey + " at c1"); 
 				//else 
-				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c1"); 
+				//out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c1"); 
 				break;
 		case 2: 
 			if(c2Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//System.out.println(threadId +  "inserted " + pending.insertKey + " at c2"); 
+				//out.println(threadId +  "inserted " + pending.insertKey + " at c2"); 
 				//else 
-				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c2");
+				//out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c2");
 				break;
 		case 3: 
 			if(c3Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//System.out.println(threadId+  "inserted " + pending.insertKey + " at c3"); 
+				//out.println(threadId+  "inserted " + pending.insertKey + " at c3"); 
 				//else 
-				//System.out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c3");
+				//out.println("Somebody helped "+ threadId + " to insert " + pending.insertKey + " at c3");
 				break;
 
 		default: assert(false); break;
@@ -428,7 +428,6 @@ public class ConcurrentKaryST
 		UpdateStep pPending;
 		UpdateStep gpPending;
 		Node replaceNode;
-		int attempt =0;
 		while(true) //loop until a leaf or dummy node is reached
 		{
 			ltLastKey=false;
@@ -441,8 +440,6 @@ public class ConcurrentKaryST
 			gpnode=gproot;
 			node=proot.c0;
 			replaceNode=null;
-			attempt++;
-			//System.out.println(threadId + " attempt " + attempt  + " to delete " + deleteKey);
 			while(node.c0 !=null) //loop until a leaf or dummy node is reached
 			{
 				ltLastKey=false;
@@ -509,12 +506,12 @@ public class ConcurrentKaryST
 
 			if(gpPending.getClass() != Clean.class)
 			{
-				//System.out.println(threadId + "trying to delete " + deleteKey + " but gpinfo record is not clean and hence calling help");
+				//out.println(threadId + "trying to delete " + deleteKey + " but gpinfo record is not clean and hence calling help");
 				help(gpPending, threadId);
 			}
 			else if (pPending.getClass() != Clean.class)
 			{
-				//System.out.println(threadId + "trying to delete " + deleteKey + " but pinfo record is not clean and hence calling help");
+				//out.println(threadId + "trying to delete " + deleteKey + " but pinfo record is not clean and hence calling help");
 				help(pPending, threadId);
 			}
 			else if(node.keys != null) //leaf node is reached
@@ -537,20 +534,20 @@ public class ConcurrentKaryST
 
 				if(keyFound)
 				{
-					//System.out.println(threadId + " found key " + deleteKey);
+					//out.println(threadId + " found key " + deleteKey);
 					if(atleast2Keys > 1) //simple delete
 					{
 						replaceNode.keys[keyIndex] = 0;
 						ReplaceFlag op = new ReplaceFlag(node, pnode, nthChild, replaceNode, deleteKey);
 						if(infoUpdate.compareAndSet(pnode, pPending, op))
 						{
-							//System.out.println(threadId  + "trying to delete " + deleteKey + " and successfully updated info record");
+							//out.println(threadId  + "trying to delete " + deleteKey + " and successfully updated info record");
 							helpReplace(op,threadId);
 							return;
 						}
 						else
 						{
-							//System.out.println(threadId  + "trying to delete " + deleteKey + " but failed to update info record. So helping it");
+							//out.println(threadId  + "trying to delete " + deleteKey + " but failed to update info record. So helping it");
 							help(pnode.pending,threadId);
 						}	
 					}
@@ -580,19 +577,19 @@ public class ConcurrentKaryST
 							ReplaceFlag op = new ReplaceFlag(node, pnode, nthChild, replaceNode, deleteKey);
 							if(infoUpdate.compareAndSet(pnode, pPending, op))
 							{
-								//System.out.println(threadId  + "trying to delete " + deleteKey + " and successfully updated info record");
+								//out.println(threadId  + "trying to delete " + deleteKey + " and successfully updated info record");
 								helpReplace(op,threadId);
 								return;
 							}
 							else
 							{
-								//System.out.println(threadId  + "trying to delete " + deleteKey + " but failed to update info record. So helping it");
+								//out.println(threadId  + "trying to delete " + deleteKey + " but failed to update info record. So helping it");
 								help(pnode.pending,threadId);
 							}	
 						}
 						else//pruning delete. Only this node and another sibling exist. Make the gp point to the sibling.
 						{
-							//System.out.println(threadId  + " trying a pruning delete for " + deleteKey);
+							//out.println(threadId  + " trying a pruning delete for " + deleteKey);
 							PruneFlag op=null;
 							switch(nthParent)
 							{
@@ -603,16 +600,16 @@ public class ConcurrentKaryST
 							}
 							if(infoUpdate.compareAndSet(gpnode, gpPending, op)) //flag gp with prune flag
 							{
-								//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and successfully flagged gp" );
+								//out.println(threadId  + " trying a pruning delete for " + deleteKey + " and successfully flagged gp" );
 								if(helpPrune(op,threadId))
 								{
-									//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and helpPrune was successful" );
+									//out.println(threadId  + " trying a pruning delete for " + deleteKey + " and helpPrune was successful" );
 									return;
 								}
 							}
 							else
 							{
-								//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and failed to flag gp" );
+								//out.println(threadId  + " trying a pruning delete for " + deleteKey + " and failed to flag gp" );
 								help(gpnode.pending,threadId);
 							}
 						}
@@ -621,19 +618,19 @@ public class ConcurrentKaryST
 				else
 				{
 					//key not found
-					//System.out.println(threadId + "'s search for " + deleteKey + " ended in a leaf node but key not found");
+					//out.println(threadId + "'s search for " + deleteKey + " ended in a leaf node but key not found");
 					return;
 				}
 			}
 			else
 			{
 				//dummy node is reached
-				//System.out.println(threadId + "'s search for " + deleteKey + " ended in a dummy node");
+				//out.println(threadId + "'s search for " + deleteKey + " ended in a dummy node");
 				return;
 			}
 		}
 	}
-	//System.out.println("In leaf node - Delete cannot delete a non-existent key");
+	//out.println("In leaf node - Delete cannot delete a non-existent key");
 
 
 	public final void printPreorder(Node node)
@@ -646,26 +643,26 @@ public class ConcurrentKaryST
 		{
 			if(node.c0 == null)
 			{
-				System.out.print("L" + "\t");
+				out.print("L" + "\t");
 				for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
 				{
-					System.out.print(node.keys[i] + "\t");
+					out.print(node.keys[i] + "\t");
 				}
 			}
 			else
 			{
-				System.out.print("I" + "\t");
+				out.print("I" + "\t");
 				for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
 				{
-					System.out.print(node.keys[i] + "\t");
+					out.print(node.keys[i] + "\t");
 				}
 			}
 		}
 		else
 		{
-			System.out.print("Dummy Node");
+			out.print("Dummy Node");
 		}
-		System.out.println();
+		out.println();
 		if(node.c0 != null)
 		{
 			printPreorder(node.c0);
@@ -685,10 +682,8 @@ public class ConcurrentKaryST
 		{
 			for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
 			{
-				System.out.print(node.keys[i] + "\t");
 				out.print(node.keys[i] + "\t");
 			}
-			System.out.println();
 			out.println();
 		}
 
