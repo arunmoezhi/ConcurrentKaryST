@@ -8,13 +8,13 @@ import java.util.StringTokenizer;
 public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 {
 	int threadId;
-	public static final int NUM_OF_THREADS=1;
-	
+	public static final int NUM_OF_THREADS=2;
+
 	public TestConcurrentKaryST(int threadId)
 	{
 		this.threadId = threadId;
 	}
-	
+
 	final void getUserInput(int fileNumber)
 	{
 		String in="";
@@ -42,6 +42,10 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				{
 					obj.delete(parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
 				}
+				else if(operation.equalsIgnoreCase("Delete1"))
+				{
+					obj.delete(parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
+				}
 
 			}
 			ds.close();
@@ -52,36 +56,42 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 		}
 
 	}
-	
+
 	public void run()
 	{
 		getUserInput(this.threadId);
 	}
-	
+
 	public static void main(String[] args)
 	{
 
-
-		obj = new ConcurrentKaryST();
-		obj.createHeadNodes();
-
-		Thread[] arrayOfThreads = new Thread[NUM_OF_THREADS];
-
-		for(int i=0;i<NUM_OF_THREADS;i++)
-		{
-			arrayOfThreads[i] = new Thread(  new TestConcurrentKaryST(i));
-			arrayOfThreads[i].start();
-		}
-		
 		try
 		{
-			for(int i=0;i<NUM_OF_THREADS;i++)
+			obj = new ConcurrentKaryST();
+			obj.createHeadNodes();
+
+			Thread[] arrayOfThreads = new Thread[NUM_OF_THREADS];
+
+			arrayOfThreads[0] = new Thread(  new TestConcurrentKaryST(0)); //just inserts - initial array
+			arrayOfThreads[0].start();
+			arrayOfThreads[0].join();
+			System.out.println("Thread " + 0 + " is done");
+			
+			
+			for(int i=1;i<NUM_OF_THREADS;i++)
+			{
+				arrayOfThreads[i] = new Thread(  new TestConcurrentKaryST(i));
+				arrayOfThreads[i].start();
+			}
+
+
+			for(int i=1;i<NUM_OF_THREADS;i++)
 			{
 				arrayOfThreads[i].join();
 				System.out.println("Thread " + i + " is done");
 			}
 			//obj.printPreorder(ConcurrentKaryST.grandParentHead);
-			//obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
+			obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
 			obj.nodeCount(ConcurrentKaryST.grandParentHead);
 			System.out.println(ConcurrentKaryST.nodeCount);
 		}

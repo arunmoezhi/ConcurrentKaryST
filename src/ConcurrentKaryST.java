@@ -1,3 +1,6 @@
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.concurrent.atomic.*;
 public class ConcurrentKaryST
@@ -12,6 +15,20 @@ public class ConcurrentKaryST
 	static final AtomicReferenceFieldUpdater<Node, Node> c2Update = AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "c2");
 	static final AtomicReferenceFieldUpdater<Node, Node> c3Update = AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "c3");
 	static final AtomicReferenceFieldUpdater<Node, UpdateStep> infoUpdate = AtomicReferenceFieldUpdater.newUpdater(Node.class, UpdateStep.class, "pending");
+	FileOutputStream outf;
+	PrintStream out;
+	public ConcurrentKaryST()
+	{
+		try 
+		{
+			outf = new FileOutputStream("out.txt");
+			out = new PrintStream(outf);
+		}
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+	}
 
 	public final long lookup(Node node, long target)
 	{
@@ -345,8 +362,9 @@ public class ConcurrentKaryST
 
 	public final boolean helpPrune(PruneFlag pending, int threadId)
 	{
+		//precondition - this method is called after successfully flagging gp with pruneflag
 		boolean result;
-		result = infoUpdate.compareAndSet(pending.p, pending.ppending, new Mark(pending)); //Mark CAS
+		result = infoUpdate.compareAndSet(pending.p, pending.ppending, new Mark(pending)); //mark parent with mark flag
 
 		UpdateStep newValue = pending.p.pending;
 		if(result || (newValue.getClass() == Mark.class && ((Mark) newValue).pending == pending)) //marking successful- So go ahead and complete the deletion
@@ -365,19 +383,19 @@ public class ConcurrentKaryST
 	public final void helpMarked(PruneFlag pending, int threadId)
 	{
 		Node other=null;
-		if(pending.p.c0 != pending.l && pending.p.c0.c0 != null)
+		if(pending.p.c0 != pending.l && pending.p.c0.keys != null)
 		{
 			other = pending.p.c0;	
 		}
-		else if(pending.p.c1 != pending.l && pending.p.c1.c0 != null)
+		else if(pending.p.c1 != pending.l && pending.p.c1.keys != null)
 		{
 			other = pending.p.c1;
 		}
-		else if(pending.p.c2 != pending.l && pending.p.c2.c0 != null)
+		else if(pending.p.c2 != pending.l && pending.p.c2.keys != null)
 		{
 			other = pending.p.c2;
 		}
-		else if(pending.p.c3 != pending.l && pending.p.c3.c0 != null)
+		else if(pending.p.c3 != pending.l && pending.p.c3.keys != null)
 		{
 			other = pending.p.c3;
 		}
@@ -407,8 +425,6 @@ public class ConcurrentKaryST
 		Node node;
 		Node pnode;
 		Node gpnode;
-		Node currentLeaf;
-		Node currentParent;
 		UpdateStep pPending;
 		UpdateStep gpPending;
 		Node replaceNode;
@@ -424,8 +440,6 @@ public class ConcurrentKaryST
 			pnode=proot;
 			gpnode=gproot;
 			node=proot.c0;
-			currentLeaf=null;
-			currentParent=null;
 			replaceNode=null;
 			attempt++;
 			//System.out.println(threadId + " attempt " + attempt  + " to delete " + deleteKey);
@@ -460,56 +474,38 @@ public class ConcurrentKaryST
 			//get the child id w.r.t the parent
 			if(pnode.c0 == node)
 			{
-				currentLeaf = pnode.c0;
 				nthChild = 0;
 			}
 			else if(pnode.c1 == node)
 			{
-				currentLeaf = pnode.c1;
 				nthChild = 1;
 			}
 			else if(pnode.c2 == node)
 			{
-				currentLeaf = pnode.c2;
 				nthChild = 2;
 			}
 			else if(pnode.c3 == node)
 			{
-				currentLeaf = pnode.c3;
 				nthChild = 3;
 			}
-
-//			if(node != currentLeaf )
-//			{
-//				continue;
-//			}
 
 			//get the parent id w.r.t the grandparent
 			if(gpnode.c0 == pnode)
 			{
-				currentParent = gpnode.c0;
 				nthParent = 0;
 			}
 			else if(gpnode.c1 == pnode)
 			{
-				currentParent = gpnode.c1;
 				nthParent = 1;
 			}
 			else if(gpnode.c2 == pnode)
 			{
-				currentParent = gpnode.c2;
 				nthParent = 2;
 			}
 			else if(gpnode.c3 == pnode)
 			{
-				currentParent = gpnode.c3;
 				nthParent = 3;
 			}
-
-//			if(pnode != currentParent)
-//			{
-//				continue;
-//			}
 
 			if(gpPending.getClass() != Clean.class)
 			{
@@ -605,7 +601,7 @@ public class ConcurrentKaryST
 							case 2:op = new PruneFlag(node,pnode,gpnode,2,pPending);break;
 							case 3:op = new PruneFlag(node,pnode,gpnode,3,pPending);break;
 							}
-							if(infoUpdate.compareAndSet(gpnode, gpPending, op))
+							if(infoUpdate.compareAndSet(gpnode, gpPending, op)) //flag gp with prune flag
 							{
 								//System.out.println(threadId  + " trying a pruning delete for " + deleteKey + " and successfully flagged gp" );
 								if(helpPrune(op,threadId))
@@ -690,8 +686,10 @@ public class ConcurrentKaryST
 			for(int i=0;i<Node.NUM_OF_KEYS_IN_A_NODE;i++)
 			{
 				System.out.print(node.keys[i] + "\t");
+				out.print(node.keys[i] + "\t");
 			}
 			System.out.println();
+			out.println();
 		}
 
 		if(node.c0 != null)
