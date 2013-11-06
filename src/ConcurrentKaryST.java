@@ -156,7 +156,7 @@ public class ConcurrentKaryST
 				continue;
 			}
 
-			if(pPending.getClass() != Clean.class)
+			if(pPending != null && pPending.getClass() != Clean.class)
 			{
 				//out.println(threadId + "trying to insert " + insertKey + " but info record is not clean and hence calling help");
 				help(pPending, threadId);
@@ -264,7 +264,7 @@ public class ConcurrentKaryST
 		}
 	}
 
-	public final void help(UpdateStep pending, int threadId)
+	public final void help(final UpdateStep pending, int threadId)
 	{
 		//out.println(threadId + " trying to help " + pending.getClass());
 		if(pending.getClass() != Clean.class)
@@ -363,10 +363,10 @@ public class ConcurrentKaryST
 	public final boolean helpPrune(PruneFlag pending, int threadId)
 	{
 		//precondition - this method is called after successfully flagging gp with pruneflag
-		boolean result;
+		final boolean result;
 		result = infoUpdate.compareAndSet(pending.p, pending.ppending, new Mark(pending)); //mark parent with mark flag
 
-		UpdateStep newValue = pending.p.pending;
+		final UpdateStep newValue = pending.p.pending;
 		if(result || (newValue.getClass() == Mark.class && ((Mark) newValue).pending == pending)) //marking successful- So go ahead and complete the deletion
 		{
 			helpMarked(pending,threadId); 
@@ -504,12 +504,12 @@ public class ConcurrentKaryST
 				nthParent = 3;
 			}
 
-			if(gpPending.getClass() != Clean.class)
+			if(gpPending != null && gpPending.getClass() != Clean.class)
 			{
 				//out.println(threadId + "trying to delete " + deleteKey + " but gpinfo record is not clean and hence calling help");
 				help(gpPending, threadId);
 			}
-			else if (pPending.getClass() != Clean.class)
+			else if (pPending != null && pPending.getClass() != Clean.class)
 			{
 				//out.println(threadId + "trying to delete " + deleteKey + " but pinfo record is not clean and hence calling help");
 				help(pPending, threadId);
@@ -590,14 +590,7 @@ public class ConcurrentKaryST
 						else//pruning delete. Only this node and another sibling exist. Make the gp point to the sibling.
 						{
 							//out.println(threadId  + " trying a pruning delete for " + deleteKey);
-							PruneFlag op=null;
-							switch(nthParent)
-							{
-							case 0:op = new PruneFlag(node,pnode,gpnode,0,pPending);break;
-							case 1:op = new PruneFlag(node,pnode,gpnode,1,pPending);break;
-							case 2:op = new PruneFlag(node,pnode,gpnode,2,pPending);break;
-							case 3:op = new PruneFlag(node,pnode,gpnode,3,pPending);break;
-							}
+							final PruneFlag op = new PruneFlag(node,pnode,gpnode,nthParent,pPending);
 							if(infoUpdate.compareAndSet(gpnode, gpPending, op)) //flag gp with prune flag
 							{
 								//out.println(threadId  + " trying a pruning delete for " + deleteKey + " and successfully flagged gp" );
