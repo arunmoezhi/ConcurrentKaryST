@@ -21,3 +21,8 @@ This will read 4 input files in0.txt in1.txt in2.txt and in3.txt.
 Thread 0 will run independently and once it completes, all other threads will execute in parallel. 
 Output:
 # of nodes in the tree
+
+Input format:
+Insert <key>
+Find <key>
+Delete <key>

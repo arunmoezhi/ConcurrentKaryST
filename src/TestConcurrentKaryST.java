@@ -32,7 +32,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				operation = st.nextToken();
 				if(operation.equalsIgnoreCase("Find"))
 				{
-					//obj.lookup(grandParentHead,Long.parseLong(st.nextToken()));
+					obj.lookup(grandParentHead,Long.parseLong(st.nextToken()));
 				}
 				else if(operation.equalsIgnoreCase("Insert"))
 				{
@@ -42,11 +42,6 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 				{
 					obj.delete(parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
 				}
-				else if(operation.equalsIgnoreCase("Delete1"))
-				{
-					obj.delete(parentHead,grandParentHead,Long.parseLong(st.nextToken()),threadId);
-				}
-
 			}
 			ds.close();
 		} 
