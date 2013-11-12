@@ -30,4 +30,4 @@ each input file should terminate with a "quit" keyword
 
 Note:
 the input files are referenced using relative path ../input/in*.txt. This will work fine in unix.
-for Windows change this accordingly.
+for Windows change this accordingly
