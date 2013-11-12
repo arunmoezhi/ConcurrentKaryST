@@ -23,7 +23,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 		FileInputStream fs;
 		try
 		{
-			fs = new FileInputStream("in" + fileNumber + ".txt");
+			fs = new FileInputStream("../input/in" + fileNumber + ".txt");
 			DataInputStream ds = new DataInputStream(fs);
 			BufferedReader reader = new BufferedReader(new InputStreamReader(ds));
 			while(!(in = reader.readLine()).equalsIgnoreCase("quit"))
