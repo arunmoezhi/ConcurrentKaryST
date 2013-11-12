@@ -26,3 +26,4 @@ Input format:
 Insert <key>
 Find <key>
 Delete <key>
+each input file should terminate with a "quit" keyword
