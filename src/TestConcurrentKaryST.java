@@ -8,7 +8,7 @@ import java.util.StringTokenizer;
 public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 {
 	int threadId;
-	public static final int NUM_OF_THREADS=16;
+	public static int NUM_OF_THREADS;
 
 	public TestConcurrentKaryST(int threadId)
 	{
@@ -67,6 +67,7 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 
 		try
 		{
+			NUM_OF_THREADS = Integer.parseInt(args[0]);
 			obj = new ConcurrentKaryST();
 			obj.createHeadNodes();
 

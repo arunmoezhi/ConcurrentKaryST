@@ -271,7 +271,7 @@ public class ConcurrentKaryST
 		{
 			if(pending.getClass() == ReplaceFlag.class)
 			{
-				helpReplace1((ReplaceFlag) pending, threadId);
+				helpReplace((ReplaceFlag) pending, threadId);
 			}
 			else if(pending.getClass() == PruneFlag.class)
 			{
@@ -286,42 +286,6 @@ public class ConcurrentKaryST
 		{
 			//out.println("In help method - pending became clean again");
 		}
-	}
-
-	public final void helpReplace1(ReplaceFlag pending, int threadId)
-	{
-
-		switch (pending.pIndex)
-		{                                                  
-		case 0: 
-			if(c0Update.compareAndSet(pending.p, pending.l, pending.newChild)) 
-				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c0");  
-				//else 
-				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c0"); 
-				break;
-		case 1: 
-			if(c1Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c1");
-				//else 
-				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c1");
-				break;
-		case 2: 
-			if(c2Update.compareAndSet(pending.p, pending.l, pending.newChild))
-				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c2"); 
-				//else 
-				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c2"); 
-				break;
-		case 3:
-			if(c3Update.compareAndSet(pending.p, pending.l, pending.newChild)) 
-				//out.println(threadId  + "successfully helped inserting " + pending.insertKey + " at c3"); 
-				//else 
-				//out.println("Somebody helped "+ threadId  + " which was trying to help insert " + pending.insertKey + " at c3");
-				break;
-
-		default: assert(false); break;
-		}
-
-		infoUpdate.compareAndSet(pending.p, pending, new Clean());
 	}
 
 	public final void helpReplace(ReplaceFlag pending, int threadId)
