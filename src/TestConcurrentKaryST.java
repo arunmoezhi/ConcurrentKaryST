@@ -66,25 +66,25 @@ public class TestConcurrentKaryST extends ConcurrentKaryST implements Runnable
 			obj = new ConcurrentKaryST();
 			obj.createHeadNodes();
 
-			Thread[] arrayOfThreads = new Thread[NUM_OF_THREADS];
+			Thread[] arrayOfThreads = new Thread[NUM_OF_THREADS+1];
 
 			arrayOfThreads[0] = new Thread(  new TestConcurrentKaryST(0)); //just inserts - initial array
 			arrayOfThreads[0].start();
 			arrayOfThreads[0].join();
-			System.out.println("Thread " + 0 + " is done");
+			//System.out.println("Thread " + 0 + " is done");
 			
 			
-			for(int i=1;i<NUM_OF_THREADS;i++)
+			for(int i=1;i<=NUM_OF_THREADS;i++)
 			{
 				arrayOfThreads[i] = new Thread(  new TestConcurrentKaryST(i));
 				arrayOfThreads[i].start();
 			}
 
 
-			for(int i=1;i<NUM_OF_THREADS;i++)
+			for(int i=1;i<=NUM_OF_THREADS;i++)
 			{
 				arrayOfThreads[i].join();
-				System.out.println("Thread " + i + " is done");
+				//System.out.println("Thread " + i + " is done");
 			}
 			//obj.printPreorder(ConcurrentKaryST.grandParentHead);
 			//obj.printOnlyKeysPreorder(ConcurrentKaryST.grandParentHead);
